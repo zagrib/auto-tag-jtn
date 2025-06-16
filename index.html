@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auto Hyperlink Tag Artikel</title>
+  <title>Auto Hyperlink Tag Artikel v1.2</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 2rem; }
     label { display: block; margin-top: 1rem; }
@@ -19,7 +19,7 @@
   </style>
 </head>
 <body>
-  <h1>Auto Hyperlink Tag Artikel v1.1</h1>
+  <h1>Auto Hyperlink Tag Artikel v1.2</h1>
 
   <label for="tags">Tag Artikel (pisahkan dengan koma)</label>
   <input type="text" id="tags" placeholder="contoh: formula 1, lando norris, oscar piastri">
@@ -39,25 +39,52 @@
   <div class="output" id="output" contenteditable="true"></div>
 
   <script>
+    function escapeRegExp(string) {
+      return string.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    }
+
     function prosesLink() {
-      const tags = document.getElementById("tags").value.split(",").map(t => t.trim().toLowerCase());
+      const tags = document.getElementById("tags").value.split(",").map(t => t.trim()).filter(Boolean);
       const urlBase = document.querySelector('input[name="url"]:checked').value;
       const contentEl = document.getElementById("content");
       let content = contentEl.innerHTML;
 
       const usedTags = new Set();
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = content;
+
       tags.sort((a, b) => b.length - a.length);
 
       tags.forEach(tag => {
-        if (!tag || usedTags.has(tag)) return;
-        const tagEscaped = tag.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
-        const regex = new RegExp(`(?![^<]*>)\\b(${tagEscaped})\\b`, 'gi');
-        const tagUrl = urlBase + tag.trim().toLowerCase().replace(/\s+/g, "-");
-        content = content.replace(regex, `<a href="${tagUrl}" target="_blank">$1</a>`);
-        usedTags.add(tag);
+        if (usedTags.has(tag.toLowerCase())) return;
+
+        const tagUrl = urlBase + tag.toLowerCase().replace(/\s+/g, "-");
+        const regex = new RegExp(`(?![^<]*>)\\b(${escapeRegExp(tag)})\\b`, 'i');
+
+        function walk(node) {
+          if (node.nodeType === 3) {
+            const match = node.data.match(regex);
+            if (match) {
+              const span = document.createElement("span");
+              const before = node.splitText(match.index);
+              const after = before.splitText(match[0].length);
+              const link = document.createElement("a");
+              link.href = tagUrl;
+              link.target = "_blank";
+              link.textContent = match[0];
+              span.appendChild(link);
+              tempDiv.replaceChild(span, before);
+              usedTags.add(tag.toLowerCase());
+            }
+          } else if (node.nodeType === 1 && node.nodeName !== "A") {
+            Array.from(node.childNodes).forEach(walk);
+          }
+        }
+
+        walk(tempDiv);
       });
 
-      document.getElementById("output").innerHTML = content;
+      document.getElementById("output").innerHTML = tempDiv.innerHTML;
     }
 
     function copyToClipboard() {
