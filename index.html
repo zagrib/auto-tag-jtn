@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Auto Hyperlink Tag Artikel</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    label { display: block; margin-top: 1rem; }
+    textarea, input[type="text"] { width: 100%; padding: 0.5rem; margin-top: 0.5rem; }
+    button { margin-top: 1rem; padding: 0.5rem 1rem; font-size: 1rem; }
+    .output { margin-top: 2rem; white-space: pre-wrap; border: 1px solid #ccc; padding: 1rem; background: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <h1>Auto Hyperlink Tag Artikel</h1>
+
+  <label for="tags">Tag Artikel (pisahkan dengan koma)</label>
+  <input type="text" id="tags" placeholder="contoh: formula 1, lando norris, oscar piastri">
+
+  <label for="url">URL Tag Dasar</label>
+  <input type="text" id="url" value="https://jatimtimes.com/tag/">
+
+  <label for="content">Isi Artikel</label>
+  <textarea id="content" rows="10" placeholder="Masukkan isi artikel di sini..."></textarea>
+
+  <button onclick="prosesLink()">Proses</button>
+
+  <div class="output" id="output"></div>
+
+  <script>
+    function prosesLink() {
+      const tags = document.getElementById("tags").value.split(",").map(t => t.trim().toLowerCase());
+      const urlBase = document.getElementById("url").value;
+      let content = document.getElementById("content").value;
+
+      tags.sort((a, b) => b.length - a.length); // Hindari konflik keyword pendek dulu
+
+      tags.forEach(tag => {
+        if (!tag) return;
+        const tagEscaped = tag.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+        const regex = new RegExp(`\\b(${tagEscaped})\\b`, 'gi');
+        const tagUrl = urlBase + tag.trim().toLowerCase().replace(/\s+/g, "-");
+        content = content.replace(regex, `<a href="${tagUrl}" target="_blank">$1</a>`);
+      });
+
+      document.getElementById("output").innerHTML = content;
+    }
+  </script>
+</body>
+</html>
