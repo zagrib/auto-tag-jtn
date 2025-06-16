@@ -50,23 +50,26 @@
       tags.forEach(tag => {
         if (!tag || usedTags.has(tag)) return;
         const tagEscaped = tag.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
-        const regex = new RegExp(`\\b(${tagEscaped})\\b`, 'i');
+        const regex = new RegExp(`\\b(${tagEscaped})\\b`, 'gi');
         const tagUrl = urlBase + tag.trim().toLowerCase().replace(/\s+/g, "-");
         content = content.replace(regex, `<a href="${tagUrl}" target="_blank">$1</a>`);
         usedTags.add(tag);
       });
 
-      document.getElementById("output").innerHTML = content;
+      const paragraphs = content.split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("\n\n");
+      document.getElementById("output").innerHTML = paragraphs;
     }
 
     function copyToClipboard() {
-      const tempEl = document.createElement("textarea");
-      tempEl.value = document.getElementById("output").innerHTML;
-      document.body.appendChild(tempEl);
-      tempEl.select();
-      document.execCommand("copy");
-      document.body.removeChild(tempEl);
-      alert("Hasil sudah disalin!");
+      const outputHTML = document.getElementById("output").innerHTML;
+      const blob = new Blob([outputHTML], { type: "text/html" });
+      const data = [new ClipboardItem({ "text/html": blob })];
+      navigator.clipboard.write(data).then(() => {
+        alert("Hasil sudah disalin sebagai rich text!");
+      }).catch(err => {
+        console.error("Gagal menyalin:", err);
+        alert("Gagal menyalin hasil. Coba gunakan browser terbaru.");
+      });
     }
   </script>
 </body>
