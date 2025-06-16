@@ -7,11 +7,11 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 2rem; }
     label { display: block; margin-top: 1rem; }
-    textarea, input[type="text"] { width: 100%; padding: 0.5rem; margin-top: 0.5rem; box-sizing: border-box; }
+    input[type="text"] { width: 100%; padding: 0.5rem; margin-top: 0.5rem; box-sizing: border-box; }
     .url-options { margin-top: 0.5rem; }
     .url-options label { display: inline-block; margin-right: 1rem; }
     button { margin-top: 1rem; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
-    .output { margin-top: 2rem; white-space: pre-wrap; border: 1px solid #ccc; padding: 1rem; background: #f9f9f9; }
+    .output, #content { margin-top: 2rem; border: 1px solid #ccc; padding: 1rem; background: #f9f9f9; min-height: 200px; }
     .btn-copy { margin-left: 1rem; background-color: #4CAF50; color: white; border: none; border-radius: 4px; }
     @media (max-width: 600px) {
       button, .btn-copy { width: 100%; margin-top: 0.5rem; }
@@ -19,7 +19,7 @@
   </style>
 </head>
 <body>
-  <h1>Auto Hyperlink Tag Artikel</h1>
+  <h1>Auto Hyperlink Tag Artikel v1.1</h1>
 
   <label for="tags">Tag Artikel (pisahkan dengan koma)</label>
   <input type="text" id="tags" placeholder="contoh: formula 1, lando norris, oscar piastri">
@@ -31,18 +31,19 @@
   </div>
 
   <label for="content">Isi Artikel</label>
-  <textarea id="content" rows="10" placeholder="Masukkan isi artikel di sini..."></textarea>
+  <div id="content" contenteditable="true"></div>
 
   <button onclick="prosesLink()">Proses</button>
   <button class="btn-copy" onclick="copyToClipboard()">Copy Hasil</button>
 
-  <div class="output" id="output"></div>
+  <div class="output" id="output" contenteditable="true"></div>
 
   <script>
     function prosesLink() {
       const tags = document.getElementById("tags").value.split(",").map(t => t.trim().toLowerCase());
       const urlBase = document.querySelector('input[name="url"]:checked').value;
-      let content = document.getElementById("content").value;
+      const contentEl = document.getElementById("content");
+      let content = contentEl.innerHTML;
 
       const usedTags = new Set();
       tags.sort((a, b) => b.length - a.length);
@@ -50,26 +51,25 @@
       tags.forEach(tag => {
         if (!tag || usedTags.has(tag)) return;
         const tagEscaped = tag.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
-        const regex = new RegExp(`\\b(${tagEscaped})\\b`, 'gi');
+        const regex = new RegExp(`(?![^<]*>)\\b(${tagEscaped})\\b`, 'gi');
         const tagUrl = urlBase + tag.trim().toLowerCase().replace(/\s+/g, "-");
         content = content.replace(regex, `<a href="${tagUrl}" target="_blank">$1</a>`);
         usedTags.add(tag);
       });
 
-      const paragraphs = content.split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("\n\n");
-      document.getElementById("output").innerHTML = paragraphs;
+      document.getElementById("output").innerHTML = content;
     }
 
     function copyToClipboard() {
-      const outputHTML = document.getElementById("output").innerHTML;
-      const blob = new Blob([outputHTML], { type: "text/html" });
-      const data = [new ClipboardItem({ "text/html": blob })];
-      navigator.clipboard.write(data).then(() => {
-        alert("Hasil sudah disalin sebagai rich text!");
-      }).catch(err => {
-        console.error("Gagal menyalin:", err);
-        alert("Gagal menyalin hasil. Coba gunakan browser terbaru.");
-      });
+      const output = document.getElementById("output");
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(output);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      document.execCommand("copy");
+      selection.removeAllRanges();
+      alert("Hasil sudah disalin dengan struktur HTML!");
     }
   </script>
 </body>
