@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auto Hyperlink Tag Artikel v1.3</title>
+  <title>Auto Hyperlink Tag Artikel v1.4</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 2rem; }
     label { display: block; margin-top: 1rem; }
@@ -19,7 +19,7 @@
   </style>
 </head>
 <body>
-  <h1>Auto Hyperlink Tag Artikel v1.3</h1>
+  <h1>Auto Hyperlink Tag Artikel v1.4</h1>
 
   <label for="tags">Tag Artikel (pisahkan dengan koma)</label>
   <input type="text" id="tags" placeholder="contoh: formula 1, lando norris, oscar piastri">
@@ -47,45 +47,27 @@
       const tags = document.getElementById("tags").value.split(",").map(t => t.trim()).filter(Boolean);
       const urlBase = document.querySelector('input[name="url"]:checked').value;
       const contentEl = document.getElementById("content");
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = contentEl.innerHTML;
+      let html = contentEl.innerHTML;
 
       const usedTags = new Set();
+
       tags.sort((a, b) => b.length - a.length);
 
       tags.forEach(tag => {
         const tagKey = tag.toLowerCase();
         if (usedTags.has(tagKey)) return;
 
-        const tagUrl = urlBase + tagKey.replace(/\s+/g, "-");
-        const regex = new RegExp(`(?![^<]*>)\\b(${escapeRegExp(tag)})\\b`, 'i');
+        const tagSlug = tagKey.replace(/\s+/g, "-");
+        const tagUrl = urlBase + tagSlug;
 
-        let hyperlinkApplied = false;
+        // Cari kata yang belum berada dalam tag <a>
+        const regex = new RegExp(`(?!<[^>]*?)\\b(${escapeRegExp(tag)})\\b(?![^<]*?>)`, "i");
+        html = html.replace(regex, `<a href="${tagUrl}" target="_blank">$1</a>`);
 
-        function walk(node) {
-          if (hyperlinkApplied) return;
-          if (node.nodeType === 3) {
-            const match = node.data.match(regex);
-            if (match) {
-              const before = node.splitText(match.index);
-              const matched = before.splitText(match[0].length);
-              const a = document.createElement("a");
-              a.href = tagUrl;
-              a.target = "_blank";
-              a.textContent = match[0];
-              before.parentNode.insertBefore(a, matched);
-              hyperlinkApplied = true;
-              usedTags.add(tagKey);
-            }
-          } else if (node.nodeType === 1 && node.nodeName !== "A") {
-            Array.from(node.childNodes).forEach(walk);
-          }
-        }
-
-        walk(tempDiv);
+        usedTags.add(tagKey);
       });
 
-      document.getElementById("output").innerHTML = tempDiv.innerHTML;
+      document.getElementById("output").innerHTML = html;
     }
 
     function copyToClipboard() {
